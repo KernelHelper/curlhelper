@@ -332,52 +332,7 @@ __inline static CURLcode curl_http_form_execute(
 
 		// HTTP POST method
 		curl_easy_setopt(pCurl, CURLOPT_POST, bPostRequest ? 1L : 0L);
-
-		/*curl_mime *mime = 0;
-		curl_mime *alt = 0;
-		curl_mimepart *part = 0;
-		struct curl_slist *slist = 0;
-		if (pFormFieldMap)
-		{
-			// Build the mime message. 
-			mime = curl_mime_init(pCurl);
-			// The inline part is an alternative proposing the html and the text
-			//versions of the e-mail. 
-			alt = curl_mime_init(pCurl);
-
-			for (auto it = pFormFieldMap->begin(); it != pFormFieldMap->end(); it++)
-			{
-				// Text message. 
-				part = curl_mime_addpart(alt);
-				curl_mime_name(part, it->first.c_str());
-				curl_mime_data(part, it->second.c_str(), CURL_ZERO_TERMINATED);
-			}
-		}
-		if (pFormFileMap && mime)
-		{
-			for (auto it = pFormFileMap->begin(); it != pFormFileMap->end(); it++)
-			{
-				// Text message. 
-				part = curl_mime_addpart(alt);
-				curl_mime_name(part, it->first.c_str());
-				curl_mime_data(part, it->second.c_str(), CURL_ZERO_TERMINATED);
-				// File message. 
-				part = curl_mime_addpart(alt);
-				curl_mime_filedata(part, it->second.c_str());
-			}
-		}
-		if (mime)
-		{
-			// Create the inline part. 
-			part = curl_mime_addpart(mime);
-			curl_mime_subparts(part, alt);
-			curl_mime_type(part, "multipart/alternative");
-			slist = curl_slist_append(NULL, "Content-Disposition:inline");
-			curl_mime_headers(part, slist, 1);
-
-			curl_easy_setopt(pCurl, CURLOPT_MIMEPOST, mime);
-		}*/
-
+		
 		if (pFormFieldMap)
 		{
 			for (auto it = pFormFieldMap->begin(); it != pFormFieldMap->end(); it++)
@@ -419,8 +374,7 @@ __inline static CURLcode curl_http_form_execute(
 		if (pProxyPort)
 		{
 			// indicates type of proxy. accepted values are CURLPROXY_HTTP (default),
-			// CURLPROXY_HTTPS, CURLPROXY_SOCKS4, CURLPROXY_SOCKS4A and
-			// CURLPROXY_SOCKS5.
+			// CURLPROXY_HTTPS, CURLPROXY_SOCKS4, CURLPROXY_SOCKS4A and CURLPROXY_SOCKS5.
 			curl_easy_setopt(pCurl, CURLOPT_PROXYTYPE, nProxyType);
 
 			// Port of the proxy, can be set in the proxy string as well with: "[host]:[port]"
@@ -434,11 +388,12 @@ __inline static CURLcode curl_http_form_execute(
 		}
 
 		curlCode = curl_easy_perform(pCurl);
-		//if (mime)
+
+		if (formpost)
 		{
-			// Free multipart message. 
-			//curl_mime_free(mime);
+			curl_formfree(formpost);
 		}
+
 		curl_easy_cleanup(pCurl);
 	}
 
