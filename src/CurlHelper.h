@@ -409,3 +409,23 @@ __inline static void curl_http_cleanup()
 {
 	curl_global_cleanup();
 }
+
+//////////////////////////////////////////////////////////////////////
+
+__inline static std::string post_form(std::string url, std::map<std::string, std::string> & sv)
+{
+	std::string result = "";
+	const char * pheaderdata = "Expect:";
+	CURLcode curlCode = CURLcode::CURLE_OK;
+	pbytedata pbd = bytedata::startup();
+
+	curlCode = curl_http_form_execute(pbd, url.c_str(), true, pheaderdata, &sv);
+
+	if (pbd->p)
+	{
+		result = pbd->p;
+	}
+	pbd->cleanup();
+
+	return result;
+}
