@@ -337,14 +337,14 @@ __inline static CURLcode curl_http_form_execute(
 		{
 			for (auto it = pFormFieldMap->begin(); it != pFormFieldMap->end(); it++)
 			{
-				if (it->second.rfind(it->second, '/') != std::string::npos)
+				if (it->second.rfind('/') != std::string::npos)
 				{
 					// Fill in the file upload field. This makes libcurl load data from
 					// the given file name when curl_easy_perform() is called. 
 					curl_formadd(&formpost,
 						&lastptr,
 						CURLFORM_COPYNAME, it->first.c_str(),
-						CURLFORM_FILENAME, it->second.substr(it->second.rfind(it->second, '/')).c_str(),
+						CURLFORM_FILENAME, it->second.substr(it->second.rfind('/')).c_str(),
 						CURLFORM_FILE, it->second.c_str(),
 						CURLFORM_END);
 				}
