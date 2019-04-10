@@ -3,7 +3,29 @@
 #include <string>
 #include <map>
 #include <curl/curl.h>
+#include <openssl/conf.h>
 
+#include <openssl/err.h>
+
+#include <openssl/engine.h>
+
+#include <openssl/ssl.h>
+
+#define CURL_GLOBAL_INIT(X) { \
+curl_global_init(X); \
+}
+
+#define CURL_GLOBAL_EXIT() { \
+curl_global_cleanup(); \
+CONF_modules_free(); \
+ERR_remove_state(0); \
+ENGINE_cleanup(); \
+CONF_modules_unload(1); \
+ERR_free_strings(); \
+EVP_cleanup(); \
+CRYPTO_cleanup_all_ex_data(); \
+sk_SSL_COMP_free(SSL_COMP_get_compression_methods()); \
+}
 typedef struct _tagByteData {
 #define call_back_data_size 0xffff
 	char * p;
@@ -317,6 +339,7 @@ __inline static CURLcode curl_http_form_execute(
 		curl_easy_setopt(pCurl, CURLOPT_WRITEDATA, (void *)pByteData);
 
 		//char *output = curl_easy_escape(pCurl, strRequestURL.c_str(), strRequestURL.length());
+		curl_easy_setopt(pCurl, CURLOPT_TCP_KEEPALIVE, 1L);
 
 		// The full URL to get/put
 		curl_easy_setopt(pCurl, CURLOPT_URL, pRequestUrl);
@@ -408,6 +431,14 @@ __inline static CURLcode curl_http_startup()
 __inline static void curl_http_cleanup()
 {
 	curl_global_cleanup();
+	CONF_modules_free();
+	ERR_remove_state(0);
+	ENGINE_cleanup();
+	CONF_modules_unload(1);
+	ERR_free_strings();
+	EVP_cleanup();
+	CRYPTO_cleanup_all_ex_data();
+	sk_SSL_COMP_free(SSL_COMP_get_compression_methods());
 }
 
 //////////////////////////////////////////////////////////////////////
