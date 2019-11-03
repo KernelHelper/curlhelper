@@ -13,10 +13,10 @@ int main(int argc, char ** argv)
 
 	std::string strResult = "";
 	pbytedata pbd = bytedata::startup();
-	const char * pheaderdata = "Expect:";
+	std::list<std::string> headerdata = { "Expect:" };
 	std::string url = std::string(LOCAL_URL) + SEOAREA_QUERY;
 	std::map<std::string, std::string> sv = { { "data", AToUTF8("{\"seo_area\":\"东北\"}") } };
-	curlCode = curl_http_form_execute(pbd, url.c_str(), true, pheaderdata, &sv);
+	curlCode = curl_http_multform_execute(pbd, url.c_str(), true, &headerdata, &sv);
 	if (curlCode == CURLcode::CURLE_OK)
 	{
 		strResult = UTF8ToA(pbd->p);
@@ -26,7 +26,7 @@ int main(int argc, char ** argv)
 
 	url = std::string(LOCAL_URL) + UPLOAD;
 	std::map<std::string, std::string> file_sv = { { "photo", AToUTF8("D:/1.png") } };
-	curlCode = curl_http_form_execute(pbd, url.c_str(), true, pheaderdata, &file_sv);
+	curlCode = curl_http_multform_execute(pbd, url.c_str(), true, &headerdata, &file_sv);
 	if (curlCode == CURLcode::CURLE_OK)
 	{
 		strResult = UTF8ToA(pbd->p);
