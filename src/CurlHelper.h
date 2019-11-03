@@ -2,6 +2,11 @@
 
 #include <string>
 #include <map>
+#include <list>
+#include <io.h>
+#ifndef access
+#define access _access
+#endif
 #include <curl/curl.h>
 #include <openssl/conf.h>
 
@@ -135,26 +140,26 @@ __inline static size_t write_native_data_callback(void * p_data, size_t n_size, 
 //		pByteData			返回的JSON数据字符串
 //		pRequestUrl			下载地址URL
 //		bPostRequest		是否为POST请求
-//		pHeaderData			要发送的头部数据字符串数组(\r\n为分隔符)
+//		pHeaderDataList		要发送的头部数据{"A:B","C:D"}
 //		pPostField			发送的POST域数据
 //		nProxyType			设置代理类型(CURLPROXY_HTTP, CURLPROXY_HTTPS, CURLPROXY_SOCKS4, CURLPROXY_SOCKS4A, CURLPROXY_SOCKS5)
 //		pProxyPort			设置请求使用的代理([host]:[port])
 //		pProxyUserPwd		设置代理需要的用户密码(user:password)
 //		bVerbose			是否为详细日志信息
-//		nDelayTime			超时设置，默认为60000毫秒
+//		nDelayTime			超时设置，默认为0毫秒
 //返回值:
 //		CURLcode
-__inline static CURLcode curl_http_data_execute(
+__inline static CURLcode curl_http_form_execute(
 	pbytedata pByteData, 
 	const char * pRequestUrl, 
 	bool bPostRequest = false, 
-	const char * pHeaderData = 0, 
+	std::list<std::string>* pHeaderDataList = 0, 
 	const char * pPostField = 0, 
 	curl_proxytype nProxyType = CURLPROXY_HTTP, 
 	const char * pProxyPort = 0, 
 	const char * pProxyUserPwd = 0, 
 	bool bVerbose = false, 
-	int nDelayTime = 60000)
+	int nDelayTime = 0)
 {
 	CURL * pCurl = 0;
 	CURLcode curlCode = CURLE_OK;
@@ -210,11 +215,14 @@ __inline static CURLcode curl_http_data_execute(
 		curl_easy_setopt(pCurl, CURLOPT_URL, pRequestUrl);
 
 		//设置头部数据
-		if (pHeaderData)
+		if (pHeaderDataList)
 		{
 			// This points to a linked list of headers, struct curl_slist kind. This
 			// list is also used for RTSP (in spite of its name)
-			plist = curl_slist_append(plist, pHeaderData);
+			for (auto it = pHeaderDataList->begin(); it != pHeaderDataList->end(); it++)
+			{
+				plist = curl_slist_append(plist, it->c_str());
+			}
 			curl_easy_setopt(pCurl, CURLOPT_HTTPHEADER, plist);
 		}
 
@@ -269,26 +277,28 @@ __inline static CURLcode curl_http_data_execute(
 //		pByteData			返回的JSON数据字符串
 //		pRequestUrl			下载地址URL
 //		bPostRequest		是否为POST请求
-//		pHeaderData			要发送的头部数据字符串数组(\r\n为分隔符)
+//		pHeaderDataList		要发送的头部数据{"A:B","C:D"}
 //		pFormFieldMap		发送的FORM键值对列表(如若是文件，则值路径间隔符为'/')
+//		pPostFileds			发送的POST域数据
 //		nProxyType			设置代理类型(CURLPROXY_HTTP, CURLPROXY_HTTPS, CURLPROXY_SOCKS4, CURLPROXY_SOCKS4A, CURLPROXY_SOCKS5)
 //		pProxyPort			设置请求使用的代理([host]:[port])
 //		pProxyUserPwd		设置代理需要的用户密码(user:password)
 //		bVerbose			是否为详细日志信息
-//		nDelayTime			超时设置，默认为60000毫秒
+//		nDelayTime			超时设置，默认为0毫秒
 //返回值:
 //		CURLcode
-__inline static CURLcode curl_http_form_execute(
+__inline static CURLcode curl_http_multform_execute(
 	pbytedata pByteData, 
 	const char * pRequestUrl, 
 	bool bPostRequest = false, 
-	const char * pHeaderData = 0, 
-	std::map<std::string, std::string> * pFormFieldMap = 0,
+	std::list<std::string> * pHeaderDataList = 0,
+	std::map<std::string, std::string>* pFormFieldMap = 0,
+	const char * pPostFileds = 0,
 	curl_proxytype nProxyType = CURLPROXY_HTTP, 
 	const char * pProxyPort = 0, 
 	const char * pProxyUserPwd = 0, 
 	bool bVerbose = false, 
-	int nDelayTime = 60000)
+	int nDelayTime = 0)
 {
 	CURL * pCurl = 0;
 	CURLcode curlCode = CURLE_OK;
@@ -339,36 +349,43 @@ __inline static CURLcode curl_http_form_execute(
 		curl_easy_setopt(pCurl, CURLOPT_WRITEDATA, (void *)pByteData);
 
 		//char *output = curl_easy_escape(pCurl, strRequestURL.c_str(), strRequestURL.length());
-		curl_easy_setopt(pCurl, CURLOPT_TCP_KEEPALIVE, 1L);
 
 		// The full URL to get/put
 		curl_easy_setopt(pCurl, CURLOPT_URL, pRequestUrl);
 
 		//设置头部数据
-		if (pHeaderData)
+		if (pHeaderDataList)
 		{
 			// This points to a linked list of headers, struct curl_slist kind. This
 			// list is also used for RTSP (in spite of its name)
-			plist = curl_slist_append(plist, pHeaderData);
+			for (auto it = pHeaderDataList->begin(); it != pHeaderDataList->end(); it++)
+			{
+				plist = curl_slist_append(plist, it->c_str());
+			}
 			curl_easy_setopt(pCurl, CURLOPT_HTTPHEADER, plist);
 		}
 
 		// HTTP POST method
 		curl_easy_setopt(pCurl, CURLOPT_POST, bPostRequest ? 1L : 0L);
-		
+		if (pPostFileds)
+		{
+			// Now specify the POST data (name=daniel&project=curl)
+			curl_easy_setopt(pCurl, CURLOPT_POSTFIELDS, pPostFileds);
+		}
 		if (pFormFieldMap)
 		{
 			for (auto it = pFormFieldMap->begin(); it != pFormFieldMap->end(); it++)
 			{
-				if (it->second.rfind('/') != std::string::npos)
+				
+				if (it->second.rfind('/') != std::string::npos && access(it->second.c_str(), 0) != (-1))
 				{
 					// Fill in the file upload field. This makes libcurl load data from
 					// the given file name when curl_easy_perform() is called. 
 					curl_formadd(&formpost,
 						&lastptr,
 						CURLFORM_COPYNAME, it->first.c_str(),
-						CURLFORM_FILENAME, it->second.substr(it->second.rfind('/')).c_str(),
 						CURLFORM_FILE, it->second.c_str(),
+						CURLFORM_FILENAME, it->second.substr(it->second.rfind('/')).c_str(),
 						CURLFORM_END);
 				}
 				else
@@ -446,11 +463,11 @@ __inline static void curl_http_cleanup()
 __inline static std::string post_form(std::string url, std::map<std::string, std::string> & sv)
 {
 	std::string result = "";
-	const char * pheaderdata = "Expect:";
+	std::list<std::string> headerList = { "Expect:" };
 	CURLcode curlCode = CURLcode::CURLE_OK;
 	pbytedata pbd = bytedata::startup();
 
-	curlCode = curl_http_form_execute(pbd, url.c_str(), true, pheaderdata, &sv);
+	curlCode = curl_http_multform_execute(pbd, url.c_str(), true, &headerList, &sv);
 
 	if (pbd->p)
 	{
